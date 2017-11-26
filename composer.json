@@ -1,0 +1,29 @@
+{
+    "name": "adamyxt/yii2-rabbitmq",
+    "description": "Use rabbitmq queues for private projects",
+    "keywords": ["yii2", "extension", "rabbitmq"],
+		"homepage": "https://github.com/adamYxt/yii2-rabbitmq",
+		"type": "yii2-extension",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "adamYxt",
+            "email": "617003229@qq.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=5.5.0",
+    },
+    "require-dev": {
+        "php-amqplib/php-amqplib": "*",
+    },
+		"suggest": {
+        "php-amqplib/php-amqplib": "Need for AMQP queue.",
+    },
+		"autoload": {
+				"psr-4": {
+						"adamyxt\\rabbitmq\\": "src"
+				}
+		}
+}
