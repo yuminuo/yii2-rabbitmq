@@ -1,5 +1,5 @@
 {
-    "name": "adamyxt/yii2-rabbitmq",
+    "name": "adamYxt/yii2-rabbitmq",
     "description": "Use rabbitmq queues for private projects",
     "keywords": ["yii2", "extension", "rabbitmq"],
 		"homepage": "https://github.com/adamYxt/yii2-rabbitmq",
