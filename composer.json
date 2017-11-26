@@ -13,13 +13,13 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "php": ">=5.5.0",
+        "php": ">=5.5.0"
     },
     "require-dev": {
-        "php-amqplib/php-amqplib": "*",
+        "php-amqplib/php-amqplib": "*"
     },
 		"suggest": {
-        "php-amqplib/php-amqplib": "Need for AMQP queue.",
+        "php-amqplib/php-amqplib": "Need for AMQP queue."
     },
 		"autoload": {
 				"psr-4": {
