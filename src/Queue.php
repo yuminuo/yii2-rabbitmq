@@ -149,7 +149,7 @@ class Queue extends CliQueue
             }
 
             try {
-                $connection = new AMQPStreamConnection($this->clusters['host']??'localhost', $this->clusters['port']??'5672', $this->clusters['user']??'guest', $this->clusters['password']??'guest', $this->clusters['vhost']??'/');
+                $connection = new AMQPStreamConnection($config['host']??'localhost', $config['port']??'5672', $config['user']??'guest', $config['password']??'guest', $config['vhost']??'/');
                 return $connection;
             } catch (\Exception $e) {
                 Yii::warning("Connection ({$config['host']}) failed: " . $e->getMessage(), __METHOD__);
