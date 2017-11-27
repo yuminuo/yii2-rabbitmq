@@ -72,12 +72,14 @@ class Queue extends CliQueue
     {
         $this->open($this->exchangeName, $this->queueName);
         $callback = function(AMQPMessage $payload) {
-            list($ttr, $message) = explode(';', $payload->body, 2);
-            $msg = new AMQPMessage(
-                (string) 123,
-                array('correlation_id' => $payload->get('correlation_id'))
-            );
-            $payload->delivery_info['channel']->basic_publish($msg, '', $payload->get('reply_to'));
+            list($mode, $message) = explode(';', $payload->body, 2);
+            if ($mode==2) {
+                $msg = new AMQPMessage(
+                    $message,
+                    array('correlation_id' => $payload->get('correlation_id'))
+                );
+                $payload->delivery_info['channel']->basic_publish($msg, '', $payload->get('reply_to'));
+            }
             $payload->delivery_info['channel']->basic_ack($payload->delivery_info['delivery_tag']);
         };
         $this->channel->basic_qos(null, 1, null);
@@ -99,10 +101,10 @@ class Queue extends CliQueue
         $this->open($exchangeName, $queueName);
         $message = $this->serializer->serialize($message);
         $this->channel->basic_publish(
-            new AMQPMessage("0;$message", [
+            new AMQPMessage("1;$message", [
                 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
             ]),
-            $this->exchangeName
+            $exchangeName
         );
 
         return null;
@@ -123,12 +125,12 @@ class Queue extends CliQueue
         $this->corr_id = uniqid();
 
         $this->channel->basic_publish(
-            new AMQPMessage("0;$message", [
+            new AMQPMessage("2;$message", [
                 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
                 'correlation_id' => $this->corr_id,
                 'reply_to' => $this->callback_queue
             ]),
-            $this->exchangeName
+            $exchangeName
         );
         while(!$this->response) {
             $this->channel->wait();
