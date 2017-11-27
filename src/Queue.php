@@ -25,6 +25,9 @@ class Queue extends CliQueue
     public $clusters = [];
     public $queueName = 'queue';
     public $exchangeName = 'exchange';
+    private $callback_queue;
+    private $response;
+    private $corr_id;
     /**
      * @var CacheInterface|string the cache object or the ID of the cache application component that is used to store
      * the health status of the DB servers specified in [[masters]] and [[slaves]].
@@ -67,11 +70,15 @@ class Queue extends CliQueue
      */
     public function listen()
     {
-        $this->open();
+        $this->open($this->exchangeName, $this->queueName);
         $callback = function(AMQPMessage $payload) {
             list($ttr, $message) = explode(';', $payload->body, 2);
-            echo 123;
-                $payload->delivery_info['channel']->basic_ack($payload->delivery_info['delivery_tag']);
+            $msg = new AMQPMessage(
+                (string) 123,
+                array('correlation_id' => $payload->get('correlation_id'))
+            );
+            $payload->delivery_info['channel']->basic_publish($msg, '', $payload->get('reply_to'));
+            $payload->delivery_info['channel']->basic_ack($payload->delivery_info['delivery_tag']);
         };
         $this->channel->basic_qos(null, 1, null);
         $this->channel->basic_consume($this->queueName, '', false, false, false, false, $callback);
@@ -83,11 +90,16 @@ class Queue extends CliQueue
     /**
      * @inheritdoc
      */
-    protected function pushMessage($message, $ttr)
+    public function push($exchangeName, $queueName, $message)
     {
-        $this->open();
+        if ($exchangeName==null || $queueName==null) {
+            throw new InvalidConfigException('exchangeName and queueName can not be empty.');
+        }
+
+        $this->open($exchangeName, $queueName);
+        $message = $this->serializer->serialize($message);
         $this->channel->basic_publish(
-            new AMQPMessage("$ttr;$message", [
+            new AMQPMessage("0;$message", [
                 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
             ]),
             $this->exchangeName
@@ -96,10 +108,44 @@ class Queue extends CliQueue
         return null;
     }
 
+    public function synchPush($exchangeName, $queueName, $message)
+    {
+        if ($exchangeName==null || $queueName==null) {
+            throw new InvalidConfigException('exchangeName and queueName can not be empty.');
+        }
+
+        $this->open($exchangeName, $queueName);
+        list($this->callback_queue, ,) = $this->channel->queue_declare("", false, false, true, false);
+        $this->channel->basic_consume($this->callback_queue, '', false, false, false, false, [$this, 'on_response']);
+        $message = $this->serializer->serialize($message);
+
+        $this->response = null;
+        $this->corr_id = uniqid();
+
+        $this->channel->basic_publish(
+            new AMQPMessage("0;$message", [
+                'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
+                'correlation_id' => $this->corr_id,
+                'reply_to' => $this->callback_queue
+            ]),
+            $this->exchangeName
+        );
+        while(!$this->response) {
+            $this->channel->wait();
+        }
+        return intval($this->response);
+    }
+
+    public function on_response($rep) {
+        if($rep->get('correlation_id') == $this->corr_id) {
+            $this->response = $rep->body;
+        }
+    }
+
     /**
      * Opens connection and channel
      */
-    protected function open()
+    protected function open($exchangeName, $queueName)
     {
         if ($this->channel) return;
         $this->connection = $this->openFromPool($this->clusters);
@@ -107,9 +153,9 @@ class Queue extends CliQueue
             throw new InvalidConfigException('There is no available queue service.');
         }
         $this->channel = $this->connection->channel();
-        $this->channel->queue_declare($this->queueName, false, true, false, false);
-        $this->channel->exchange_declare($this->exchangeName, 'direct', false, true, false);
-        $this->channel->queue_bind($this->queueName, $this->exchangeName);
+        $this->channel->queue_declare($queueName, false, true, false, false);
+        $this->channel->exchange_declare($exchangeName, 'direct', false, true, false);
+        $this->channel->queue_bind($queueName, $exchangeName);
     }
 
     /**
