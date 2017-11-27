@@ -5,21 +5,20 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace yii\queue\cli;
+namespace adamyxt\rabbitmq;
 
 use Yii;
 use yii\base\BootstrapInterface;
 use yii\base\InvalidConfigException;
 use yii\console\Application as ConsoleApp;
 use yii\helpers\Inflector;
-use yii\queue\Queue as BaseQueue;
 
 /**
  * Queue with CLI
  *
  * @author Roman Zhuravlev <zhuravljov@gmail.com>
  */
-abstract class Queue extends BaseQueue implements BootstrapInterface
+abstract class CliQueue extends BaseQueue implements BootstrapInterface
 {
     /**
      * @var string command class name

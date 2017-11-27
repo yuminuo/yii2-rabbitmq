@@ -5,9 +5,8 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace yii\queue\serializers;
+namespace adamyxt\rabbitmq\serializers;
 
-use yii\queue\JobInterface;
 
 /**
  * Interface SerializerInterface
@@ -17,14 +16,12 @@ use yii\queue\JobInterface;
 interface SerializerInterface
 {
     /**
-     * @param JobInterface|mixed $job
      * @return string
      */
     public function serialize($job);
 
     /**
      * @param string $serialized
-     * @return JobInterface
      */
     public function unserialize($serialized);
 }

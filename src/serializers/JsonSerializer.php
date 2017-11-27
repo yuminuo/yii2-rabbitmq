@@ -5,7 +5,7 @@
  * @license http://www.yiiframework.com/license/
  */
 
-namespace yii\queue\serializers;
+namespace adamyxt\rabbitmq\serializers;
 
 use Yii;
 use yii\base\BaseObject;
