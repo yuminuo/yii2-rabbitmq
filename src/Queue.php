@@ -1,16 +1,14 @@
 <?php
 /**
- * @link http://www.yiiframework.com/
- * @copyright Copyright (c) 2008 Yii Software LLC
- * @license http://www.yiiframework.com/license/
+ *rabbitmq queue
  */
 
 namespace adamyxt\rabbitmq;
 
+use Yii;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
-use Yii;
 use yii\base\Application as BaseApp;
 use yii\base\Event;
 use yii\base\InvalidConfigException;
@@ -28,17 +26,20 @@ class Queue extends CliQueue
     private $callback_queue;
     private $response;
     private $corr_id;
+
     /**
      * @var CacheInterface|string the cache object or the ID of the cache application component that is used to store
      * the health status of the DB servers specified in [[masters]] and [[slaves]].
      * This is used only when read/write splitting is enabled or [[masters]] is not empty.
      */
     public $serverStatusCache = 'cache';
+
     /**
      * @var int the retry interval in seconds for dead servers listed in [[masters]] and [[slaves]].
      * This is used together with [[serverStatusCache]].
      */
     public $serverRetryInterval = 10;
+
     /**
      * @var string command class name
      */
@@ -48,11 +49,11 @@ class Queue extends CliQueue
      * @var AMQPStreamConnection
      */
     protected $connection;
+
     /**
      * @var AMQPChannel
      */
     protected $channel;
-
 
     /**
      * @inheritdoc
@@ -110,6 +111,9 @@ class Queue extends CliQueue
         return null;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function synchPush($exchangeName, $queueName, $message)
     {
         if ($exchangeName==null || $queueName==null) {
@@ -138,6 +142,9 @@ class Queue extends CliQueue
         return intval($this->response);
     }
 
+    /**
+     * @param $rep
+     */
     public function on_response($rep) {
         if($rep->get('correlation_id') == $this->corr_id) {
             $this->response = $rep->body;
@@ -171,6 +178,8 @@ class Queue extends CliQueue
     }
 
     /**
+     * @param array $pool
+     * @return null|AMQPStreamConnection
      */
     protected function openFromPool(array $pool)
     {
@@ -179,6 +188,8 @@ class Queue extends CliQueue
     }
 
     /**
+     * @param array $pool
+     * @return null|AMQPStreamConnection
      */
     protected function openFromPoolSequentially(array $pool)
     {
