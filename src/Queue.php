@@ -74,10 +74,11 @@ class Queue extends CliQueue
         $this->open($this->exchangeName, $this->queueName);
         $callback = function(AMQPMessage $payload) {
             list($mode, $message) = explode(';', $payload->body, 2);
+            $red = $this->handleMessage($message);
             if ($mode==2) {
                 $msg = new AMQPMessage(
-                    $message,
-                    array('correlation_id' => $payload->get('correlation_id'))
+                    $this->serializer->serialize($red),
+                    ['correlation_id' => $payload->get('correlation_id')]
                 );
                 $payload->delivery_info['channel']->basic_publish($msg, '', $payload->get('reply_to'));
             }
@@ -139,7 +140,7 @@ class Queue extends CliQueue
         while(!$this->response) {
             $this->channel->wait();
         }
-        return intval($this->response);
+        return $this->response;
     }
 
     /**
@@ -147,8 +148,32 @@ class Queue extends CliQueue
      */
     public function on_response($rep) {
         if($rep->get('correlation_id') == $this->corr_id) {
-            $this->response = $rep->body;
+            $this->response = $this->serializer->unserialize($rep->body);
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function handleMessage($message)
+    {
+        $data = $this->serializer->unserialize($message);
+        if (!isset($data['workClass']) || !isset($data['method'])) {
+            return ['status'=>false, 'msg'=>'parameter error.'];
+        }
+        try {
+            $workModel = new $data['workClass'];
+            $methodName = $data['method'];
+            if (isset($data['data'])) {
+                $workModel->$methodName($data['data']);
+            } else {
+                $workModel->$methodName();
+            }
+        }catch (\Exception $e) {
+            return ['status'=>false, 'msg'=>$e->getMessage()];
+        }
+
+        return ['status'=>true];
     }
 
     /**
